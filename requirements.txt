@@ -1,0 +1,4 @@
+pre-commit
+#git+https://github.com/open-mmlab/mmdetection.git
+#--extra-index-url https://developer.download.nvidia.com/compute/redist nvidia-dali-cuda100
+#nvidia-dali-cuda100
