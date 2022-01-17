@@ -91,10 +91,7 @@ def train_detector(
         )
         optimizer = build_optimizer(model, cfg.optimizer)
         model, optimizer = apex.amp.initialize(
-            model.cuda(),
-            optimizer,
-            opt_level="O1",
-            **fp16_cfg,
+            model.cuda(), optimizer, opt_level="O1", **fp16_cfg,
         )
         # put model on gpus
         if distributed:

@@ -85,10 +85,7 @@ def get_roi_prediction(
 
             for j in range(num_imgs):
                 assign_result = bbox_assigner.assign(
-                    proposal_list[j],
-                    gt_bboxes[j],
-                    gt_bboxes_ignore[j],
-                    gt_labels[j],
+                    proposal_list[j], gt_bboxes[j], gt_bboxes_ignore[j], gt_labels[j],
                 )
                 sampling_result = bbox_sampler.sample(
                     assign_result,
@@ -178,9 +175,7 @@ def get_single_roi_loss(self, stage, pred, img_metas, teacher=None):
                     unsup_proposals = [
                         {"bboxes": [proposal], "img_metas": [meta]}
                         for proposal, flag, meta in zip(
-                            proposal_list,
-                            unsup_flag,
-                            img_metas,
+                            proposal_list, unsup_flag, img_metas,
                         )
                         if flag
                     ]
@@ -232,15 +227,6 @@ def get_single_roi_loss(self, stage, pred, img_metas, teacher=None):
                 bbox_results["bbox_pred"],
                 rois,
                 *bbox_targets,
-            )
-        )
-    if self.with_mask:
-        mask_results = pred["mask_results"]
-        mask_targets = pred["mask_targets"]
-        pos_labels = pred["pos_labels"]
-        loss.update(
-            self.mask_head[stage].loss(
-                mask_results["mask_pred"], mask_targets, pos_labels
             )
         )
     return loss

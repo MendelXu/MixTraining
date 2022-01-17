@@ -655,11 +655,7 @@ class TransformAnnotation(object):
         trans_matrix = results["trans_matrix"]
         h, w = results["img_shape"][:2]
         for key in results.get("bbox_fields", []):
-            results[key] = self._transform_bbox(
-                results[key],
-                trans_matrix,
-                (h, w),
-            )
+            results[key] = self._transform_bbox(results[key], trans_matrix, (h, w),)
         for key in results.get("mask_fields", []):
             results[key] = self._transform_mask(results[key], trans_matrix, (h, w))
         for key in results.get("seg_fields", []):
@@ -823,11 +819,7 @@ class RandomGrayScale(object):
 def adjust_hue(img, factor):
     gradient = cv2.Laplacian(img, cv2.CV_64F)
     return cv2.addWeighted(
-        gradient.astype(np.float32),
-        factor,
-        img.astype(np.float32),
-        1 - factor,
-        0,
+        gradient.astype(np.float32), factor, img.astype(np.float32), 1 - factor, 0,
     )
 
 

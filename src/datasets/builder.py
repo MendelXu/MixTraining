@@ -57,10 +57,7 @@ def build_dataloader(
     **kwargs,
 ):
     rank, world_size = get_dist_info()
-    default_sampler_cfg = dict(
-        type="Sampler",
-        dataset=dataset,
-    )
+    default_sampler_cfg = dict(type="Sampler", dataset=dataset,)
     if shuffle:
         default_sampler_cfg.update(samples_per_gpu=samples_per_gpu)
     else:

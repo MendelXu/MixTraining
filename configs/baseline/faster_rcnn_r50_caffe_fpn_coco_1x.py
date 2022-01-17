@@ -8,10 +8,7 @@ model = dict(
     pretrained="open-mmlab://detectron2/resnet50_caffe",
     backbone=dict(norm_cfg=dict(requires_grad=False), norm_eval=True, style="caffe"),
 )
-data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=2,
-)
+data = dict(samples_per_gpu=2, workers_per_gpu=2,)
 
 lr_config = dict(step=[32, 44])
 runner = dict(max_epochs=48)

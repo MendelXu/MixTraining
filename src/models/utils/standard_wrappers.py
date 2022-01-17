@@ -73,16 +73,12 @@ def get_roi_prediction(
                 for res in sampling_results:
                     pos_inds.append(
                         torch.ones(
-                            res.pos_bboxes.shape[0],
-                            device=device,
-                            dtype=torch.uint8,
+                            res.pos_bboxes.shape[0], device=device, dtype=torch.uint8,
                         )
                     )
                     pos_inds.append(
                         torch.zeros(
-                            res.neg_bboxes.shape[0],
-                            device=device,
-                            dtype=torch.uint8,
+                            res.neg_bboxes.shape[0], device=device, dtype=torch.uint8,
                         )
                     )
                 pos_inds = torch.cat(pos_inds)
@@ -184,9 +180,7 @@ def get_roi_loss(self, pred, img_metas, teacher=None, student=None, **kwargs):
                     unsup_proposals = [
                         {"bboxes": [proposal], "img_metas": [meta]}
                         for proposal, flag, meta in zip(
-                            proposal_list,
-                            unsup_flag,
-                            img_metas,
+                            proposal_list, unsup_flag, img_metas,
                         )
                         if flag
                     ]
@@ -224,48 +218,6 @@ def get_roi_loss(self, pred, img_metas, teacher=None, student=None, **kwargs):
                         * label_weights
                         / max(label_weights.sum(), 1)
                     )
-            elif student is not None:
-                if student.train_cfg.get("neg_examples_mining", False):
-                    mining_method = student.train_cfg.get("neg_examples_mining_cfg")
-                    method_type = mining_method.get("type")
-                    if method_type == "pos_only":
-                        # only consider positive samples
-                        cls_labels = bbox_targets[0]
-                        label_weights = bbox_targets[1].detach().clone()
-                        neg_inds = cls_labels == self.bbox_head.num_classes
-                        label_weights[neg_inds] = 0
-                        bbox_targets[1] = label_weights
-                    elif method_type == "soft_iou":
-                        assert "gt_bboxes" in kwargs
-                        cls_labels = bbox_targets[0]
-                        neg_inds = cls_labels == self.bbox_head.num_classes
-                        label_weights = bbox_targets[1].detach().clone()
-                        # compte iou between proposal and gt
-                        proposal_list = roi2bbox(rois)
-                        gt_bboxes = kwargs.get("gt_bboxes")
-                        iou_list = [
-                            bbox_overlaps(p, g)
-                            for p, g in zip(proposal_list, gt_bboxes)
-                        ]
-                        iou_list = [
-                            _iou.max(dim=1)[0]
-                            if _iou.numel() > 0
-                            else _iou.new_zeros(_iou.shape[0])
-                            for _iou in iou_list
-                        ]
-                        iou_vec = torch.cat(iou_list)
-                        alpha = mining_method.get("alpha", 0.25)
-                        beta = mining_method.get("beta", 50)
-                        sigma = mining_method.get("sigma", 20)
-                        label_weights[neg_inds] = alpha + (1 - alpha) * torch.exp(
-                            -beta * torch.exp(-sigma * iou_vec[neg_inds])
-                        )
-                        bbox_targets[1] = label_weights
-
-                    else:
-                        raise NotImplementedError(
-                            f"Negative Mining Method {method_type} is not implemented yet."
-                        )
         loss.update(
             self.bbox_head.loss(
                 bbox_results["cls_score"],
@@ -273,40 +225,6 @@ def get_roi_loss(self, pred, img_metas, teacher=None, student=None, **kwargs):
                 rois,
                 *bbox_targets,
             )
-        )
-        # we apply KL-style loss
-        with torch.no_grad():
-            if (teacher is not None) and teacher.train_cfg.get(
-                "with_soft_weighting", False
-            ):
-                unsup_flag = ["unsup" in meta["tag"] for meta in img_metas]
-                if sum(unsup_flag) > 0:
-                    label_weights = bbox_targets[1].detach().clone()
-                    proposal_list = roi2bbox(rois)
-                    unsup_proposals = [
-                        {"bboxes": [proposal], "img_metas": [meta]}
-                        for proposal, flag, meta in zip(
-                            proposal_list,
-                            unsup_flag,
-                            img_metas,
-                        )
-                        if flag
-                    ]
-                    unsup_proposals = dict_concat(unsup_proposals)
-                    rated_weights = teacher.rate(**unsup_proposals)
-                    rated_weights = torch.cat(rated_weights)  # Nxc
-                    loss["loss_cls"] = compute_kl_loss(
-                        bbox_results["cls_score"],
-                        rated_weights,
-                        bg_weight=1.5,
-                        fg_weight=1.0,
-                    )
-    if self.with_mask:
-        mask_results = pred["mask_results"]
-        mask_targets = pred["mask_targets"]
-        pos_labels = pred["pos_labels"]
-        loss.update(
-            self.mask_head.loss(mask_results["mask_pred"], mask_targets, pos_labels)
         )
     return loss
 

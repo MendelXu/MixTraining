@@ -5,10 +5,7 @@ _base_ = [
     "../_base_/schedules/swin_adamw_schedule_1x.py",
 ]
 
-data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=2,
-)
+data = dict(samples_per_gpu=2, workers_per_gpu=2,)
 
 lr_config = dict(step=[48, 66])
 runner = dict(max_epochs=72)

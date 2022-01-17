@@ -26,7 +26,7 @@ test_set = "val2017"
 # end def
 
 sup = [
-    dict(type="LoadImageFromFile", file_client_args=dict(backend="zip")),
+    dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations", with_bbox=True),
     color_transform,
     dict(type="Resize", **scale_cfg),
@@ -42,7 +42,7 @@ sup = [
     ),
 ]
 test_pipeline = [
-    dict(type="LoadImageFromFile", file_client_args=dict(backend="zip")),
+    dict(type="LoadImageFromFile"),
     dict(
         type="MultiScaleFlipAug",
         img_scale=(1333, 800),

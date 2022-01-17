@@ -219,11 +219,7 @@ class GlobalWandbLoggerHook(WandbLoggerHook):
 
     @classmethod
     def convert_mask(
-        cls,
-        tag,
-        masks,
-        mask_labels,
-        class_labels,
+        cls, tag, masks, mask_labels, class_labels,
     ):
         label = {k: l for k, l in enumerate(("bg",) + class_labels)}
         vis_mask = {

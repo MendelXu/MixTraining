@@ -17,16 +17,8 @@ geo_transform = dict(
     type="RandomApply",
     policies=[
         dict(type="LazyGeoIdentity"),
-        dict(
-            type="LazyTranslate",
-            max_translate_offset=0.2,
-            direction="horizontal",
-        ),
-        dict(
-            type="LazyTranslate",
-            max_translate_offset=0.2,
-            direction="veritical",
-        ),
+        dict(type="LazyTranslate", max_translate_offset=0.2, direction="horizontal",),
+        dict(type="LazyTranslate", max_translate_offset=0.2, direction="veritical",),
         dict(type="LazyRotate"),
         dict(type="LazyShear"),
     ],
@@ -45,7 +37,7 @@ test_set = "test2017"
 # end def
 
 sup = [
-    dict(type="LoadImageFromFile", file_client_args=dict(backend="zip")),
+    dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations", with_bbox=True),
     color_transform,
     dict(type="Resize", **scale_cfg),
@@ -82,7 +74,6 @@ unsup_strong = [
         fill_in=(0, 0, 0),
     ),
     dict(type="Pad", size_divisor=32),
-    dict(type="PseudoSamples", with_bbox=True, with_mask=True, with_seg=True),
     dict(type="DefaultFormatBundle"),
     dict(type="ExtraAttrs", tag="unsup_student"),
     dict(
@@ -97,7 +88,6 @@ unsup_weak = [
     dict(type="Normalize", **img_norm_cfg),
     dict(type="TransformImage"),
     dict(type="Pad", size_divisor=32),
-    dict(type="PseudoSamples", with_bbox=True, with_mask=True, with_seg=True),
     dict(type="DefaultFormatBundle"),
     dict(type="ExtraAttrs", tag="unsup_teacher"),
     dict(
@@ -107,7 +97,7 @@ unsup_weak = [
     ),
 ]
 unsup = [
-    dict(type="LoadImageFromFile", file_client_args=dict(backend="zip")),
+    dict(type="LoadImageFromFile"),
     dict(type="LoadAnnotations", with_bbox=True),
     dict(
         type="MultiBranch",
@@ -118,7 +108,7 @@ unsup = [
     ),
 ]
 test_pipeline = [
-    dict(type="LoadImageFromFile", file_client_args=dict(backend="zip")),
+    dict(type="LoadImageFromFile"),
     dict(
         type="MultiScaleFlipAug",
         img_scale=(1333, 800),

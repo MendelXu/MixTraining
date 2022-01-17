@@ -65,18 +65,20 @@ class TwoStageStudent(Student):
         if unlabeled is not None:
             with Timer("techer prediction transform"):
                 pseudo_gt = teacher.deliver(unlabeled["img"], unlabeled["img_metas"])
-                unlabeled.update(
-                    gt_bboxes=multi_apply(
-                        self.combine,
-                        unlabeled["gt_bboxes"],
-                        [bbox[:, :4] for bbox in pseudo_gt["gt_bboxes"]],
-                    )[0]
+                gt_proposals = {
+                    "bboxes": unlabeled["gt_bboxes"],
+                    "img_metas": unlabeled["img_metas"],
+                }
+                gt_scores = teacher.rate(**gt_proposals)
+                bboxes, labels = multi_apply(
+                    self.combine,
+                    unlabeled["gt_bboxes"],
+                    unlabeled["gt_labels"],
+                    gt_scores,
+                    [bbox[:, :4] for bbox in pseudo_gt["gt_bboxes"]],
+                    pseudo_gt["gt_labels"],
                 )
-                unlabeled.update(gt_labels=pseudo_gt["gt_labels"])
-                if "gt_masks" in pseudo_gt:
-                    unlabeled.update(gt_masks=pseudo_gt["gt_masks"])
-                if "gt_semantic_seg" in pseudo_gt:
-                    unlabeled.update(gt_semantic_seg=pseudo_gt["gt_semantic_seg"])
+                unlabeled.update(gt_bboxes=bboxes, gt_labels=labels)
         loss = {}
         if labeled is None:
             with Timer("Get student prediction"):
@@ -111,15 +113,14 @@ class TwoStageStudent(Student):
                     rpn_pred, labeled["gt_bboxes"], labeled["img_metas"]
                 )
                 labeled_roi_loss = get_roi_loss(
-                    self.detector.roi_head,
-                    roi_pred,
-                    labeled["img_metas"],
+                    self.detector.roi_head, roi_pred, labeled["img_metas"],
                 )
             loss.update(labeled_rpn_loss)
             loss.update(labeled_roi_loss)
         else:
-            labeled_sample_num, unlabeled_sample_num = len(labeled["img"]), len(
-                unlabeled["img"]
+            labeled_sample_num, unlabeled_sample_num = (
+                len(labeled["img"]),
+                len(unlabeled["img"]),
             )
             with Timer("Get student prediction"):
                 rpn_pred, roi_pred = self.get_prediction(
@@ -175,14 +176,19 @@ class TwoStageStudent(Student):
             loss = dict_sum(loss, unlabeled_loss)
         return loss
 
-    def combine(self, bbox_gt, bbox_noise):
-        bbox_select, bbox_left = [], []
+    def combine(self, bbox_gt, label_gt, score_gt, bbox_noise, label_noise):
+        score_thr = self.train_cfg.get("gt_score_thr", 0.9)
+        flags = score_gt[torch.arange(len(score_gt)), label_gt] > score_thr
+        bbox_gt = bbox_gt[flags]
+        label_gt = label_gt[flags]
+
         iou = bbox_overlaps(bbox_gt, bbox_noise)
         if iou.numel() > 0:
-            matched = iou.float().max(dim=0)[0] > self.train_cfg.get("iou_thr", 0.5)
-            bbox_select = torch.cat([bbox_noise, bbox_gt[~matched]])
-            bbox_left = bbox_gt[matched]
+            matched = iou.float().max(dim=1)[0] > self.train_cfg.get("iou_thr", 0.5)
         else:
-            bbox_select = bbox_gt
-            bbox_left = bbox_noise
-        return bbox_select, bbox_left
+            matched = torch.zeros_like(label_gt, dtype=torch.bool)
+
+        bbox_select = torch.cat([bbox_noise, bbox_gt[~matched]])
+        label_select = torch.cat([label_noise, label_gt[~matched]])
+
+        return bbox_select, label_select
